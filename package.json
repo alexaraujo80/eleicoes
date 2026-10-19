@@ -1,0 +1,10 @@
+{
+  "name": "painel-eleicoes-2026",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dados": "node scripts/baixar-dados.mjs",
+    "dados:2t": "node scripts/baixar-dados.mjs --com-2-turno"
+  }
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Eleições 2026 — acompanhamento e análise</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700;800&family=Saira:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topo">
+    <div class="faixa" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="topo-in">
+      <div class="marca">
+        <h1>Eleições 2026</h1>
+        <p>Dados oficiais do TSE, atualizados automaticamente</p>
+      </div>
+      <nav class="abas" role="tablist" aria-label="Seções">
+        <button role="tab" data-tab="aovivo">2º turno ao vivo</button>
+        <button role="tab" data-tab="primeiro">Análise do 1º turno</button>
+        <button role="tab" data-tab="bancadas">Cadeiras e bancadas</button>
+        <button role="tab" data-tab="comparativo">Comparar com 2022</button>
+        <button role="tab" data-tab="fontes">Fontes e diagnóstico</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <div id="aviso-acesso"></div>
+    <div id="view" aria-live="polite"></div>
+  </main>
+
+  <footer>
+    Fonte: Tribunal Superior Eleitoral, arquivos públicos de divulgação em resultados.tse.jus.br.
+    Os números exibidos aqui não substituem a divulgação oficial.
+  </footer>
+
+  <dialog id="dlg">
+    <div class="dlg-topo"><h2 id="dlg-titulo"></h2><button type="button" data-fechar aria-label="Fechar">×</button></div>
+    <div class="dlg-corpo" id="dlg-corpo"></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["gru1"],
+  "functions": {
+    "api/tse.js": { "maxDuration": 15 }
+  },
+  "headers": [
+    {
+      "source": "/data/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=600, s-maxage=86400" }]
+    },
+    {
+      "source": "/data/manifest.json",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=0, s-maxage=60" }]
+    }
+  ]
+}
