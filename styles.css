@@ -151,14 +151,19 @@ h3 { font: 600 19px/1.2 "Saira Condensed", sans-serif; margin: 28px 0 10px; }
 .indicadores dd small { font: 400 12.5px "Saira", sans-serif; color: var(--texto-suave); margin-left: 4px; }
 
 /* Cartograma */
-.mapa-wrap { display: grid; grid-template-columns: minmax(260px, 440px) 1fr; gap: 28px; align-items: start; }
+.mapa-wrap { display: grid; grid-template-columns: minmax(280px, 580px) 1fr; gap: 28px; align-items: start; }
 @media (max-width: 820px) { .mapa-wrap { grid-template-columns: 1fr; } }
-.cartograma { width: 100%; max-width: 440px; height: auto; }
-.cartograma g { cursor: pointer; }
+.cartograma { width: 100%; max-width: 560px; height: auto; display: block; }
+.cartograma .uf { stroke: var(--fundo); stroke-width: 1.2; stroke-linejoin: round; cursor: pointer; transition: filter .15s; }
+.cartograma g:hover .uf, .cartograma g:focus .uf { stroke: var(--amarelo); stroke-width: 3; filter: brightness(1.06); }
 .cartograma g:focus { outline: none; }
-.cartograma g:focus rect, .cartograma g:hover rect { stroke: var(--amarelo); stroke-width: 3; }
-.cartograma .t1 { font: 700 15px "Saira Condensed", sans-serif; }
-.cartograma .t2 { font: 500 10.5px "Saira", sans-serif; }
+.cartograma .rotulos { pointer-events: none; }
+.cartograma .t1 { font: 700 14px "Saira Condensed", sans-serif; }
+.cartograma .t2 { font: 500 10px "Saira", sans-serif; }
+.cartograma .fora { fill: var(--texto); paint-order: stroke; stroke: var(--fundo); stroke-width: 3.5px; stroke-linejoin: round; }
+.cartograma .fora .t2 { fill: var(--texto-suave); }
+.cartograma .guia { stroke: var(--texto-suave); stroke-width: 1; }
+.cartograma .guia-pt { fill: var(--texto); }
 .legenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; margin: 8px 0; }
 .legenda span { display: inline-flex; align-items: center; gap: 6px; }
 .legenda i { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }

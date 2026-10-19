@@ -349,18 +349,32 @@ function barras(itens, { valor = i => i.pct, rotulo = i => fP(i.pct), max } = {}
 }
 
 const curto = t => { t = String(t || ''); return t.length > 10 ? t.slice(0, 9) + '.' : t; };
+const CHAMADAS = { RN: [628, 158], PB: [628, 184], PE: [628, 210], AL: [628, 236], SE: [628, 262], ES: [572, 398], RJ: [520, 478], DF: [446, 306] };
 function cartograma(blocos, legenda = []) {
-  const T = 62, G = 6, W = 6 * (T + G), H = 8 * (T + G);
-  const g = blocos.map(b => {
+  const W = MAPA_BR.w + 115, H = MAPA_BR.h;
+  const formas = [], rotulos = [];
+  for (const b of blocos) {
+    const m = MAPA_BR.uf[b.sg];
     const fill = b.fill || 'var(--superficie-2)';
     const tc = b.fill ? textoSobre(b.fill) : 'var(--texto)';
-    return `<g tabindex="0" role="button" data-uf="${b.sg}" aria-label="${esc(b.titulo || b.sg)}">
-      <title>${esc(b.titulo || b.sg)}</title>
-      <rect x="${b.x * (T + G)}" y="${b.y * (T + G)}" width="${T}" height="${T}" rx="7" fill="${fill}" stroke="var(--linha)"/>
-      <text class="t1" x="${b.x * (T + G) + T / 2}" y="${b.y * (T + G) + 26}" text-anchor="middle" fill="${tc}">${b.sg}</text>
-      <text class="t2" x="${b.x * (T + G) + T / 2}" y="${b.y * (T + G) + 44}" text-anchor="middle" fill="${tc}">${esc(curto(b.sub))}</text></g>`;
-  }).join('');
-  return `<svg class="cartograma" viewBox="-2 -2 ${W + 4} ${H + 4}" role="group" aria-label="Mapa por estado">${g}</svg>
+    if (m) {
+      formas.push(`<g tabindex="0" role="button" data-uf="${b.sg}" aria-label="${esc(b.titulo || b.sg)}"><title>${esc(b.titulo || b.sg)}</title><path class="uf" d="${m.d}" fill="${fill}"/></g>`);
+      const [cx, cy] = m.c, ch = CHAMADAS[b.sg];
+      rotulos.push(ch
+        ? `<line class="guia" x1="${cx}" y1="${cy}" x2="${ch[0] - 4}" y2="${ch[1] - 4}"/><circle class="guia-pt" cx="${cx}" cy="${cy}" r="2.2"/>
+           <text class="t1 fora" x="${ch[0]}" y="${ch[1]}">${b.sg}<tspan class="t2" dx="5">${esc(curto(b.sub))}</tspan></text>`
+        : `<text class="t1" x="${cx}" y="${cy - 1}" text-anchor="middle" fill="${tc}">${b.sg}</text>
+           <text class="t2" x="${cx}" y="${cy + 12}" text-anchor="middle" fill="${tc}">${esc(curto(b.sub))}</text>`);
+    } else if (b.sg === 'ZZ') {
+      const x = W - 104, y = H - 56;
+      formas.push(`<g tabindex="0" role="button" data-uf="ZZ" aria-label="${esc(b.titulo || 'Exterior')}"><title>${esc(b.titulo || 'Exterior')}</title>
+        <rect class="uf" x="${x}" y="${y}" width="96" height="48" rx="8" fill="${fill}"/></g>`);
+      rotulos.push(`<text class="t1" x="${x + 48}" y="${y + 21}" text-anchor="middle" fill="${tc}">Exterior</text>
+        <text class="t2" x="${x + 48}" y="${y + 37}" text-anchor="middle" fill="${tc}">${esc(curto(b.sub))}</text>`);
+    }
+  }
+  return `<svg class="cartograma" viewBox="0 0 ${W} ${H}" role="group" aria-label="Mapa do Brasil por estado">
+      <g class="formas">${formas.join('')}</g><g class="rotulos" aria-hidden="true">${rotulos.join('')}</g></svg>
     ${legenda.length ? `<div class="legenda">${legenda.map(l => `<span><i style="background:${l.cor}"></i>${esc(l.nome)}</span>`).join('')}</div>` : ''}`;
 }
 
