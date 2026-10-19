@@ -64,13 +64,82 @@ function num(v) {
   return parseFloat(s.includes(',') ? s.replace(/\./g, '').replace(',', '.') : s) || 0;
 }
 
-const PALETA = ['#009739', '#012169', '#E0B800', '#2F6FD6', '#00612A', '#8A6D00', '#4FAE6E', '#5B7BC7',
-  '#9BCF5A', '#1E3F7A', '#C99A00', '#7FB9E6', '#2E7D5B', '#A9B7D6', '#D9C46A', '#5F6F8F'];
-const cores = new Map();
-function cor(chave) {
-  if (!chave || chave === '—') return '#9AA5B1';
-  if (!cores.has(chave)) cores.set(chave, cores.size < PALETA.length ? PALETA[cores.size] : '#9AA5B1');
-  return cores.get(chave);
+/* -------------------------------------------------------------------------
+   CORES DOS PARTIDOS
+   Chaves = sigla do TSE sem acento, espaço ou pontuação (ex.: "PC do B" -> PCDOB).
+   ------------------------------------------------------------------------- */
+const CORES_PARTIDO = {
+  AVANTE: '#2EABB1', CIDADANIA: '#EC008C', DC: '#C89721', DEM: '#8CC63E', MDB: '#009959',
+  MISSAO: '#FCBE26', MOBILIZA: '#DD3333', NOVO: '#EC671C', PCB: '#A8231C', PCDOB: '#800314',
+  PCO: '#9F030A', PDT: '#FE8E6D', PATRIOTA: '#4AA561', PEN: '#4AA561', PMN: '#CF7676',
+  PODE: '#00D663', PP: '#54B8EA', PL: '#30306C', PR: '#30306C', REPUBLICANOS: '#005CA9', PRB: '#005CA9',
+  PRD: '#007C3C', PROS: '#F48C24', PRTB: '#0047AB', PSB: '#FFCC00', PSC: '#006F41', PSD: '#FFA400',
+  PSDB: '#0F2BC5', PSL: '#054577', PSOL: '#68018D', PSTU: '#C92127', PT: '#C0122D', PTB: '#005533',
+  AGIR: '#01369E', PTC: '#01369E', PV: '#01652F', REDE: '#3CA08C', SOLIDARIEDADE: '#F37021', SD: '#F37021',
+  UNIAO: '#00A0DF', UP: '#000000', PMB: '#B5338A',
+};
+
+/* Espectro político (modo "Esquerda e direita"). Classificação de referência, editável:
+   a posição de alguns partidos é debatida entre pesquisadores; ajuste aqui se preferir. */
+const FAIXAS = {
+  esquerda:       { nome: 'Esquerda',        cor: '#C8102E', ordem: 1 },
+  centroEsquerda: { nome: 'Centro-esquerda', cor: '#EC8A94', ordem: 2 },
+  centro:         { nome: 'Centro',          cor: '#E5B700', ordem: 3 },
+  centroDireita:  { nome: 'Centro-direita',  cor: '#7FA8E8', ordem: 4 },
+  direita:        { nome: 'Direita',         cor: '#0B3D91', ordem: 5 },
+  semClasse:      { nome: 'Sem classificação', cor: '#D5DBE3', ordem: 6 },
+};
+const ESPECTRO = {
+  PT: 'esquerda', PSOL: 'esquerda', PCDOB: 'esquerda', PCO: 'esquerda', PSTU: 'esquerda', PCB: 'esquerda', UP: 'esquerda',
+  PDT: 'centroEsquerda', PSB: 'centroEsquerda', REDE: 'centroEsquerda', PV: 'centroEsquerda',
+  MDB: 'centro', PSD: 'centro', CIDADANIA: 'centro', SOLIDARIEDADE: 'centro', SD: 'centro', AVANTE: 'centro',
+  MOBILIZA: 'centro', PMN: 'centro', PMB: 'centro', AGIR: 'centro', PTC: 'centro', PROS: 'centro',
+  PSDB: 'centroDireita', PODE: 'centroDireita', PRD: 'centroDireita', PTB: 'centroDireita', DC: 'centroDireita',
+  PL: 'direita', PP: 'direita', REPUBLICANOS: 'direita', PRB: 'direita', UNIAO: 'direita', NOVO: 'direita', PSC: 'direita',
+  PATRIOTA: 'direita', PEN: 'direita', PRTB: 'direita', DEM: 'direita', PSL: 'direita', MISSAO: 'direita',
+};
+
+const PALETA_RESERVA = ['#7A8BA8', '#B08D57', '#5E9C8F', '#9C6B98', '#C27C4E', '#6B8E23', '#8E7CC3', '#4F7A8A'];
+const reserva = new Map();
+const chavePartido = sg => String(sg || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+// Federações e coligações ("FE BRASIL(PT/PC do B/PV)", "PL / PP / ..."): usa o partido que lidera o nome
+function partidoLider(nome) {
+  const dentro = String(nome || '').match(/\(([^/)]+)/);
+  const candidatos = [dentro && dentro[1], ...String(nome || '').split(/[\/\-–,()]/)].filter(Boolean);
+  for (const c of candidatos) { const k = chavePartido(c); if (CORES_PARTIDO[k] || ESPECTRO[k]) return k; }
+  return null;
+}
+function faixaDe(sg) {
+  const k = chavePartido(sg);
+  return ESPECTRO[k] || ESPECTRO[partidoLider(sg)] || 'semClasse';
+}
+function cor(sg) {
+  if (!sg || sg === '—') return '#9AA5B1';
+  if (S.modoCor === 'espectro') return FAIXAS[faixaDe(sg)].cor;
+  const k = chavePartido(sg);
+  const c = CORES_PARTIDO[k] || CORES_PARTIDO[partidoLider(sg)];
+  if (c) return c;
+  if (!reserva.has(k)) reserva.set(k, PALETA_RESERVA[reserva.size % PALETA_RESERVA.length]);
+  return reserva.get(k);
+}
+// Legenda: lista de partidos (modo partido) ou as faixas do espectro presentes (modo espectro)
+function legendaDe(partidos) {
+  const unicos = [...new Set(partidos.filter(p => p && p !== '—'))];
+  if (S.modoCor !== 'espectro') return unicos.map(p => ({ nome: p, cor: cor(p) }));
+  return [...new Set(unicos.map(faixaDe))].sort((a, b) => FAIXAS[a].ordem - FAIXAS[b].ordem).map(f => ({ nome: FAIXAS[f].nome, cor: FAIXAS[f].cor }));
+}
+// Dois candidatos frente a frente: garante cores distinguíveis
+function coresDuelo(pa, pb) {
+  const ca = cor(pa); let cb = cor(pb);
+  const [r1, g1, b1] = hexRgb(ca), [r2, g2, b2] = hexRgb(cb);
+  if (Math.hypot(r1 - r2, g1 - g2, b1 - b2) < 90) cb = S.modoCor === 'espectro' ? misturar(cb, 0.45) : '#8A96AA';
+  return [ca, cb];
+}
+// Ordena grupos da esquerda para a direita (modo espectro) ou por tamanho
+function ordenarHemiciclo(grupos) {
+  if (S.modoCor !== 'espectro') return grupos;
+  return grupos.slice().sort((a, b) => FAIXAS[faixaDe(a.nome)].ordem - FAIXAS[faixaDe(b.nome)].ordem || b.n - a.n);
 }
 function hexRgb(h) { const n = parseInt(h.slice(1), 16); return [n >> 16 & 255, n >> 8 & 255, n & 255]; }
 function misturar(h, alfa) { // mistura com branco
@@ -453,7 +522,7 @@ function colunasCandidatos(comUF) {
 /* =========================================================================
    ESTADO E NAVEGAÇÃO
    ========================================================================= */
-const S = { aba: 'aovivo', cargo: 1, escopo: 'BR', sub: 'candidatos', partido: '', busca: '',
+const S = { modoCor: 'partido', aba: 'aovivo', cargo: 1, escopo: 'BR', sub: 'candidatos', partido: '', busca: '',
   cmpCargo: 1, cmpEscopo: 'BR', cmpTurno: 1, bancada: 'camara', ufAsm: 'MG' };
 let geracao = 0, timerPoll = null;
 
@@ -491,16 +560,17 @@ async function telaAoVivo(el, obsoleto) {
 
 function placar(r, titulo) {
   const [a, b] = r.cands.slice(0, 2).sort((x, y) => +x.numero - +y.numero);
+  const [ca, cb] = coresDuelo(a?.partido, b?.partido);
   const total = (a?.votos || 0) + (b?.votos || 0);
   const pa = r.vazio ? 0 : (a?.pct || 0), pb = r.vazio ? 0 : (b?.pct || 0);
   const lado = (c, cls, p) => `<div class="lado ${cls}">
       <span class="meta">${esc(c.partido)} ${esc(c.numero)}</span>
       <span class="nome">${esc(c.nome)}</span>
-      <span class="pct">${r.vazio ? '—' : fP(p, 2)}</span>
+      <span class="pct" style="color:${cls === 'a' ? ca : cb}">${r.vazio ? '—' : fP(p, 2)}</span>
       <span class="meta">${r.vazio ? 'aguardando votos' : fN(c.votos) + ' votos'} ${c.eleito ? '<span class="eleito">Eleito</span>' : ''}</span></div>`;
   return `<div class="placar-topo"><h2>${esc(titulo)}</h2>${estadoApuracao(r)}</div>
     <div class="duelo">${a ? lado(a, 'a', pa) : ''}${b ? lado(b, 'b', pb) : ''}</div>
-    <div class="cabo" aria-hidden="true"><i class="a" style="width:${pa}%"></i><i class="b" style="width:${pb}%"></i></div>
+    <div class="cabo" aria-hidden="true"><i class="a" style="width:${pa}%;background:${ca}"></i><i class="b" style="width:${pb}%;background:${cb}"></i></div>
     <div class="apuracao" title="Seções totalizadas"><i style="width:${r.pst}%"></i></div>
     ${indicadoresHTML(r, total && !r.vazio ? [['Diferença', fN(Math.abs(a.votos - b.votos)), 'votos']] : [])}`;
 }
@@ -514,7 +584,8 @@ async function atualizarAoVivo(obsoleto) {
   if (br2 && br2.cands.length >= 2) {
     elPres.innerHTML = placar(br2, 'Presidente, 2º turno');
     const [a, b] = br2.cands.slice(0, 2).sort((x, y) => +x.numero - +y.numero);
-    const corDe = c => c.numero === a.numero ? '#009739' : '#012169';
+    const [ca, cb] = coresDuelo(a.partido, b.partido);
+    const corDe = c => c.numero === a.numero ? ca : cb;
     const ufs = await lote([...UFS, EXTERIOR], u => carregarResultado(ed, 1, 2, u.sg));
     if (obsoleto()) return;
     const blocos = [...UFS, EXTERIOR].map((u, i) => {
@@ -528,7 +599,7 @@ async function atualizarAoVivo(obsoleto) {
         <p class="nota">Cor mais forte indica vantagem maior. Clique em um estado para ver os números e os municípios.</p></div>
         <div id="vivo-uf"><p class="nota">Selecione um estado no mapa.</p></div></div>`;
     }
-    $('#vivo-cart').innerHTML = cartograma(blocos, [{ nome: a.nome, cor: '#009739' }, { nome: b.nome, cor: '#012169' }]);
+    $('#vivo-cart').innerHTML = cartograma(blocos, [{ nome: `${a.nome} (${a.partido})`, cor: ca }, { nome: `${b.nome} (${b.partido})`, cor: cb }]);
   } else {
     const br1 = await carregarResultado(ed, 1, 1, 'BR').catch(() => null);
     if (obsoleto()) return;
@@ -555,7 +626,7 @@ async function atualizarAoVivo(obsoleto) {
 function cartaoGov(u, r2, r1) {
   const base = r2 && r2.cands.length ? r2 : null;
   const cands = base ? base.cands.slice(0, 2) : (r1?.cands.filter(c => c.segundo) || []);
-  const cs = ['#009739', '#012169'];
+  const cs = coresDuelo(cands[0]?.partido, cands[1]?.partido);
   const st = !base ? '<span class="selo">Aguardando</span>' : base.vazio ? '<span class="selo">Não começou</span>'
     : `<span class="selo ${base.final ? 'final' : 'parcial'}">${base.final ? 'Final' : fP(base.pst, 1) + ' apurado'}</span>`;
   return `<article class="cartao"><header><strong>${u.nm}</strong>${st}</header>
@@ -693,7 +764,8 @@ async function telaPrimeiro(el, obsoleto) {
       <div><h3>${prop ? 'Eleitos' : 'Eleitos e 2º turno'}</h3>${barras(grupos.filter(g => g.eleitos || g.segundo).slice(0, 15),
         { valor: g => g.eleitos + g.segundo, rotulo: g => `${g.eleitos} eleitos${g.segundo ? `, ${g.segundo} no 2º turno` : ''}` }) || '<p class="nota">Nenhum eleito atribuído ainda.</p>'}</div></div>
       <h3>Tabela</h3>${tabela('part-' + chave, [
-        { k: 'nome', t: chave === 'agr' ? 'Federação ou coligação' : 'Partido', f: g => `<b>${esc(g.nome)}</b>` },
+        { k: 'nome', t: chave === 'agr' ? 'Federação ou coligação' : 'Partido', f: g => `<i class="pino" style="background:${cor(g.nome)}"></i><b>${esc(g.nome)}</b>` },
+        { k: 'faixa', t: 'Espectro', v: g => FAIXAS[faixaDe(g.nome)].nome },
         { k: 'votos', t: 'Votos', n: 1, f: g => fN(g.votos) }, { k: 'pct', t: '% válidos', n: 1, f: g => fP(g.pct) },
         { k: 'cands', t: 'Candidatos', n: 1 }, { k: 'eleitos', t: 'Eleitos', n: 1 }, ...(prop ? [] : [{ k: 'segundo', t: '2º turno', n: 1 }]),
         { k: 'sucesso', t: 'Taxa de eleição', n: 1, f: g => fP(g.sucesso, 1) },
@@ -726,13 +798,12 @@ function mapaAnalise(d) {
     if (!r || r.vazio) return { ...u, sub: '—', titulo: `${u.nm}: sem dados` };
     if (prop) {
       const g = porPartido(r.cands)[0];
-      return { ...u, fill: cor(g.nome), sub: `${g.nome} ${g.eleitos}`, titulo: `${u.nm}: ${g.nome} com ${g.eleitos} eleitos` };
+      return { ...u, fill: cor(g.nome), partido: g.nome, sub: `${g.nome} ${g.eleitos}`, titulo: `${u.nm}: ${g.nome} com ${g.eleitos} eleitos` };
     }
     const c = r.cands[0];
-    const k = d.cargo === 1 ? c.nome : c.partido;
-    return { ...u, fill: cor(k), sub: d.cargo === 1 ? fP(c.pct, 1) : c.partido, titulo: `${u.nm}: ${c.nome} (${c.partido}) ${fP(c.pct)}` };
+    return { ...u, fill: cor(c.partido), partido: c.partido, sub: d.cargo === 1 ? fP(c.pct, 1) : c.partido, titulo: `${u.nm}: ${c.nome} (${c.partido}) ${fP(c.pct)}` };
   });
-  const legenda = [...cores.entries()].filter(([k, v]) => blocos.some(b => b.fill === v)).map(([nome, c]) => ({ nome, cor: c }));
+  const legenda = legendaDe(blocos.map(b => b.partido));
   return `<div class="mapa-wrap"><div>${cartograma(blocos, legenda)}</div>
     <div><h3 style="margin-top:0">${prop ? 'Partido com mais eleitos' : d.cargo === 1 ? 'Candidato mais votado' : 'Partido do mais votado'} em cada estado</h3>
     <p class="nota">Clique em um estado para abrir a análise detalhada dele.</p>
@@ -775,7 +846,8 @@ async function telaBancadas(el, obsoleto) {
     const linhas = nomes.map(n => ({ nome: n, e26: g26[n] || 0, e22: g22[n] || 0, total: (g26[n] || 0) + (g22[n] || 0) })).sort((a, b) => b.total - a.total);
     const eleitos26 = s26.filter(Boolean).flatMap(r => r.cands.filter(c => c.eleito).map(c => ({ ...c, uf: r.abr })));
     corpo.innerHTML = `<div class="grade-2"><div><h2>Senado a partir de 2027</h2>
-      ${hemiciclo(linhas.map(l => ({ nome: l.nome, n: l.total })), 81, 'senadores')}
+      ${hemiciclo(ordenarHemiciclo(linhas.map(l => ({ nome: l.nome, n: l.total }))), 81, 'senadores')}
+      ${legendaComContagem(linhas.map(l => ({ nome: l.nome, n: l.total })))}
       <p class="nota">Em 2026 foram renovadas 54 cadeiras (2 por estado). As outras 27 são dos eleitos em 2022, com mandato até 2031, contados pelo partido que tinham na eleição. Trocas de partido posteriores não aparecem nos arquivos do TSE.</p></div>
       <div><h3>Por partido</h3>${tabela('senado', [{ k: 'nome', t: 'Partido', f: l => `<b>${esc(l.nome)}</b>` }, { k: 'e26', t: 'Eleitos em 2026', n: 1 },
         { k: 'e22', t: 'Eleitos em 2022', n: 1 }, { k: 'total', t: 'Total', n: 1 }], linhas, { ordem: 'total' })}</div></div>
@@ -811,7 +883,7 @@ async function telaBancadas(el, obsoleto) {
     const cont22 = Object.fromEntries(porPartido(linhas.filter(l => l.partido22).map(l => ({ partido: l.partido22, votos: 1, valido: true, eleito: true }))).map(g => [g.nome, g.eleitos]));
     corpo.innerHTML = `<div class="grade-2"><div><h2>Governadores eleitos</h2>${cartograma(UFS.map(u => {
         const l = linhas.find(x => x.uf === u.sg); return { ...u, fill: l.partido ? cor(l.partido) : null, sub: l.partido || 'disputa', titulo: `${u.nm}: ${l.nome} ${l.partido}` };
-      }), cont.map(g => ({ nome: g.nome, cor: cor(g.nome) })))}</div>
+      }), legendaDe(cont.map(g => g.nome)))}</div>
       <div><h3 style="margin-top:0">Estados governados por partido</h3>${barras(cont.map(g => ({ ...g, n: g.eleitos })), { valor: g => g.n, rotulo: g => `${g.n} (2022: ${cont22[g.nome] || 0})` })}</div></div>
       <h3>Por estado</h3>${tabela('gov', [{ k: 'nm', t: 'Estado', f: l => `<b>${esc(l.nm)}</b>` }, { k: 'nome', t: 'Eleito em 2026' }, { k: 'partido', t: 'Partido' },
         { k: 'turno', t: 'Turno' }, { k: 'pct', t: '%', n: 1, f: l => l.pct ? fP(l.pct) : '' }, { k: 'nome22', t: 'Eleito em 2022' }, { k: 'partido22', t: 'Partido em 2022' },
@@ -827,15 +899,28 @@ function composicao(id, titulo, total, atual, anterior, rot, nota = '') {
   const linhas = el26.map(g => ({ ...g, ant: el22[g.nome] || 0, delta: g.eleitos - (el22[g.nome] || 0), pctCad: g.eleitos / total * 100 }));
   for (const [n, v] of Object.entries(el22)) if (v && !linhas.find(l => l.nome === n)) linhas.push({ nome: n, eleitos: 0, ant: v, delta: -v, votos: 0, pct: 0, pctCad: 0 });
   const atribuídas = el26.reduce((a, g) => a + g.eleitos, 0);
-  return `<div class="grade-2"><div><h2>${esc(titulo)}</h2>${hemiciclo(el26.map(g => ({ nome: g.nome, n: g.eleitos })), total, rot)}
-      <div class="legenda">${el26.slice(0, 14).map(g => `<span><i style="background:${cor(g.nome)}"></i>${esc(g.nome)} ${g.eleitos}</span>`).join('')}</div>
+  return `<div class="grade-2"><div><h2>${esc(titulo)}</h2>${hemiciclo(ordenarHemiciclo(el26.map(g => ({ nome: g.nome, n: g.eleitos }))), total, rot)}
+      ${legendaComContagem(el26.map(g => ({ nome: g.nome, n: g.eleitos })))}
       <p class="nota">${atribuídas < total ? `${atribuídas} de ${total} cadeiras já têm eleito atribuído pelo TSE. ` : ''}${esc(nota)}</p></div>
     <div><h3 style="margin-top:0">Bancada por partido${tem22 ? ' e variação desde 2022' : ''}</h3>${tabela(id, [
-      { k: 'nome', t: 'Partido', f: g => `<b>${esc(g.nome)}</b>` }, { k: 'eleitos', t: 'Cadeiras', n: 1 },
+      { k: 'nome', t: 'Partido', f: g => `<i class="pino" style="background:${cor(g.nome)}"></i><b>${esc(g.nome)}</b>` },
+      { k: 'faixa', t: 'Espectro', v: g => FAIXAS[faixaDe(g.nome)].nome }, { k: 'eleitos', t: 'Cadeiras', n: 1 },
       { k: 'pctCad', t: '% da casa', n: 1, f: g => fP(g.pctCad, 1) },
       ...(tem22 ? [{ k: 'ant', t: '2022', n: 1 }, { k: 'delta', t: 'Variação', n: 1, f: g => fDi(g.delta) }] : []),
       { k: 'pct', t: '% votos nominais', n: 1, f: g => fP(g.pct) },
     ], linhas, { ordem: 'eleitos', limite: 40 })}</div></div>`;
+}
+
+function legendaComContagem(grupos) {
+  if (S.modoCor !== 'espectro') {
+    return `<div class="legenda">${grupos.slice(0, 16).map(g => `<span><i style="background:${cor(g.nome)}"></i>${esc(g.nome)} ${g.n}</span>`).join('')}</div>`;
+  }
+  const soma = {}; const total = grupos.reduce((a, g) => a + g.n, 0) || 1;
+  grupos.forEach(g => { const f = faixaDe(g.nome); soma[f] = (soma[f] || 0) + g.n; });
+  const faixas = Object.keys(soma).sort((a, b) => FAIXAS[a].ordem - FAIXAS[b].ordem);
+  const semClasse = grupos.filter(g => faixaDe(g.nome) === 'semClasse').map(g => g.nome);
+  return `<div class="legenda">${faixas.map(f => `<span><i style="background:${FAIXAS[f].cor}"></i>${FAIXAS[f].nome} ${soma[f]} (${fP(soma[f] / total * 100, 1)})</span>`).join('')}</div>
+    ${semClasse.length ? `<p class="nota">Sem classificação: ${esc(semClasse.join(', '))}. Ajuste em ESPECTRO no app.js.</p>` : ''}`;
 }
 
 function matrizBancadaUF(atual) {
@@ -975,6 +1060,13 @@ function cliqueUF(sg) {
   if (S.aba === 'aovivo') { const alvo = $('#vivo-uf'); if (alvo) detalheUF(sg, 1, 2, alvo); }
   else if (S.aba === 'primeiro' && sg !== 'ZZ') { S.escopo = 'UF:' + sg; S.sub = 'partidos'; rotear(); }
 }
+
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('[data-modo-cor]'); if (!b) return;
+  S.modoCor = b.dataset.modoCor;
+  document.querySelectorAll('[data-modo-cor]').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  rotear();
+});
 
 let atrasoBusca;
 document.addEventListener('change', ev => {

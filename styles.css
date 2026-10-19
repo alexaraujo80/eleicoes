@@ -237,3 +237,13 @@ footer { max-width: 1240px; margin: 0 auto; padding: 0 20px 40px; font-size: 13p
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* Alternância de cores */
+.modo-cor { display: flex; align-items: center; gap: 4px; padding-bottom: 14px; font-size: 13px; color: #c7d3f2; }
+.modo-cor span { margin-right: 4px; }
+.modo-cor button {
+  background: transparent; color: #dbe4fb; border: 1px solid rgba(255,255,255,.35);
+  padding: 4px 10px; border-radius: 999px; cursor: pointer; font-size: 13px;
+}
+.modo-cor button[aria-pressed="true"] { background: var(--amarelo); color: var(--azul); border-color: var(--amarelo); font-weight: 600; }
+.pino { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
